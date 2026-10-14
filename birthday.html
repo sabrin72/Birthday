@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oufian's Epic Quest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pixel-black: #0a0a0a;
+            --pixel-dark: #1a1a2e;
+            --pixel-blue: #16213e;
+            --pixel-cyan: #00fff5;
+            --pixel-purple: #b388ff;
+            --pixel-pink: #ff6ec7;
+            --pixel-yellow: #ffd93d;
+            --pixel-green: #6bcf7f;
+            --pixel-red: #ff5757;
+            --pixel-orange: #ffaa5a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+           
+    background: var(--pixel-dark);
+    font-family: 'VT323', monospace;
+    color: var(--pixel-cyan);
+    overflow-y: auto; 
+    min-height: 100vh; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    padding: 2rem 0;  /* ← AJOUTE DU PADDING! */
+
+        }
+
+        /* Scanline effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 255, 245, 0.03) 2px,
+                rgba(0, 255, 245, 0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 1000;
+            animation: scanline 8s linear infinite;
+        }
+
+        /* Pixel grid background */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--pixel-blue) 1px, transparent 1px),
+                linear-gradient(90deg, var(--pixel-blue) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.1;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .game-container {
+            max-width: 1000px;
+    width: 90vw;
+    max-height: 90vh;
+    background: var(--pixel-black);
+    border: 6px solid var(--pixel-cyan);
+    box-shadow: 
+        0 0 20px rgba(0, 255, 245, 0.5),
+        inset 0 0 60px rgba(0, 255, 245, 0.1);
+    position: relative;
+    z-index: 1;
+    animation: powerOn 0.5s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+
+        .screen-header {
+            background: var(--pixel-blue);
+    padding: 0.5rem 1rem;
+    border-bottom: 4px solid var(--pixel-cyan);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+        }
+
+        .game-title {
+             font-family: 'Press Start 2P', cursive;
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--pixel-yellow);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+        }
+
+        .health-bar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .heart {
+            width: 24px;
+            height: 24px;
+            color: var(--pixel-red);
+            font-size: 1.5rem;
+            animation: heartBeat 1s ease-in-out infinite;
+        }
+
+        .screen-content {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;  
+    align-items: center;
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(90vh - 60px);  
+}
+
+        .level-screen {
+            display: none;
+            text-align: center;
+            width: 100%;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+       .level-screen.active {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    align-items: center;
+    padding-bottom: 2rem;  
+}
+
+        .pixel-art-character {
+           font-size: 2.5rem;
+    animation: bounce 1s ease-in-out infinite;
+        }
+
+        .dialogue-box {
+            background: var(--pixel-blue);
+    border: 4px solid var(--pixel-cyan);
+    padding: 1rem;
+    margin: 0.8rem 0;
+    position: relative;
+    box-shadow: 0 0 20px rgba(0, 255, 245, 0.3);
+        }
+
+        .dialogue-box::before {
+            content: '▼';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--pixel-cyan);
+            font-size: 1.5rem;
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        .dialogue-text {
+           font-size: 1.1rem;
+    line-height: 1.5;
+    color: var(--pixel-cyan);
+    text-align: left;
+}
+
+.dialogue-text.large {
+    font-size: 1.5rem;
+    text-align: center;
+    font-family: 'Press Start 2P', cursive;
+}
+
+        .choices {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .choice-btn {
+            background: var(--pixel-purple);
+    border: 4px solid var(--pixel-pink);
+    padding: 0.8rem 1.2rem;
+    font-family: 'VT323', monospace;
+    font-size: 1.2rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    text-align: left;
+        }
+
+        .choice-btn::before {
+            content: '▶ ';
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .choice-btn:hover {
+            background: var(--pixel-pink);
+            border-color: var(--pixel-yellow);
+            transform: translateX(10px);
+            box-shadow: 0 0 20px rgba(255, 110, 199, 0.6);
+        }
+
+        .choice-btn:hover::before {
+            opacity: 1;
+        }
+
+        .input-box {
+            width: 100%;
+            max-width: 500px;
+            padding: 1.5rem;
+            font-family: 'VT323', monospace;
+            font-size: 1.5rem;
+            background: var(--pixel-blue);
+            border: 4px solid var(--pixel-cyan);
+            color: var(--pixel-cyan);
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .input-box::placeholder {
+            color: rgba(0, 255, 245, 0.5);
+        }
+
+        .submit-btn {
+            background: var(--pixel-green);
+            border: 4px solid var(--pixel-yellow);
+            padding: 1.5rem 3rem;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        .submit-btn:hover {
+            background: var(--pixel-yellow);
+            color: var(--pixel-dark);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 217, 61, 0.8);
+        }
+
+        .coin-counter {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.2rem;
+            color: var(--pixel-yellow);
+            margin: 1rem 0;
+        }
+
+        .final-screen {
+            text-align: center;
+        }
+
+        .birthday-message {
+            font-family: 'Press Start 2P', cursive;
+    font-size: 1.5rem;
+    color: var(--pixel-pink);
+    margin: 1rem 0;
+    animation: rainbow 3s linear infinite, scale 2s ease-in-out infinite;
+    line-height: 1.8;
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: var(--pixel-yellow);
+            position: absolute;
+            animation: confettiFall 3s linear infinite;
+        }
+
+        .jojo-stand {
+            font-size: 3rem;
+            margin: 1rem 0;
+            animation: standPose 1.5s ease-in-out infinite;
+        }
+
+
+        .photo-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.8rem;
+    width: 100%;
+    max-width: 500px;
+    margin: 1rem auto;
+}
+
+        /* Animations */
+        @keyframes powerOn {
+            0% {
+                opacity: 0;
+                transform: scaleY(0.01) scaleX(0.8);
+            }
+            50% {
+                opacity: 1;
+                transform: scaleY(0.8) scaleX(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: scaleY(1) scaleX(1);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0; }
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { 
+                text-shadow: 3px 3px 0 var(--pixel-orange);
+            }
+            50% { 
+                text-shadow: 3px 3px 0 var(--pixel-orange),
+                           0 0 20px var(--pixel-yellow);
+            }
+        }
+
+        @keyframes heartBeat {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.2); }
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100%); }
+        }
+
+        @keyframes rainbow {
+            0% { color: var(--pixel-pink); }
+            25% { color: var(--pixel-yellow); }
+            50% { color: var(--pixel-cyan); }
+            75% { color: var(--pixel-purple); }
+            100% { color: var(--pixel-pink); }
+        }
+
+        @keyframes scale {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes standPose {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: var(--pixel-blue);
+            border: 4px solid var(--pixel-cyan);
+            margin: 1rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--pixel-green), var(--pixel-cyan));
+            width: 0%;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.2) 10px,
+                rgba(255, 255, 255, 0.2) 20px
+            );
+            animation: progressShine 1s linear infinite;
+        }
+
+        @keyframes progressShine {
+            0% { transform: translateX(-20px); }
+            100% { transform: translateX(20px); }
+        }
+
+        .mini-game {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .grid-item {
+            width: 100px;
+            height: 100px;
+            background: var(--pixel-blue);
+            border: 4px solid var(--pixel-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .grid-item:hover {
+            background: var(--pixel-purple);
+            transform: scale(1.1);
+        }
+
+        .grid-item.found {
+            background: var(--pixel-green);
+            border-color: var(--pixel-yellow);
+            animation: foundItem 0.5s ease;
+        }
+
+        @keyframes foundItem {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3) rotate(360deg); }
+        }
+
+        .photo-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            width: 100%;
+            max-width: 600px;
+            margin: 1.5rem auto;
+        }
+
+        .photo-item {
+            aspect-ratio: 1;
+            background: var(--pixel-blue);
+            border: 4px solid var(--pixel-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .photo-item:hover {
+            transform: scale(1.05);
+            border-color: var(--pixel-pink);
+            box-shadow: 0 0 30px rgba(255, 110, 199, 0.6);
+        }
+
+        .photo-placeholder {
+            color: var(--pixel-cyan);
+            font-size: 3rem;
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .photo-modal.active {
+            display: flex;
+        }
+
+        .photo-modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            position: relative;
+        }
+
+        .photo-modal-content img {
+            max-width: 90vw;
+            max-height: 90vh;
+            border: 8px solid var(--pixel-cyan);
+            box-shadow: 0 0 50px rgba(0, 255, 245, 0.8);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: -50px;
+            right: 0;
+            background: var(--pixel-red);
+            border: 4px solid white;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .close-modal:hover {
+            background: var(--pixel-pink);
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 0.8rem;
+            }
+
+            .dialogue-text {
+                font-size: 1.2rem;
+            }
+
+            .birthday-message {
+                font-size: 1.5rem;
+            }
+
+            .pixel-art-character {
+                font-size: 3rem;
+            }
+
+            .grid-item {
+                width: 80px;
+                height: 80px;
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="screen-header">
+            <div class="game-title">OUFIAN'S QUEST</div>
+            <div class="health-bar">
+                <span class="heart">❤️</span>
+                <span class="heart">❤️</span>
+                <span class="heart">❤️</span>
+            </div>
+        </div>
+
+        <div class="screen-content">
+            <!-- Level 0: Start -->
+            <div class="level-screen active" id="level-0">
+                <div class="pixel-art-character">🎮</div>
+                <div class="dialogue-box">
+                    <div class="dialogue-text large">
+                        PRESS START
+                    </div>
+                </div>
+                <button class="submit-btn" onclick="nextLevel(1)">START GAME</button>
+            </div>
+
+            <!-- Level 1: The Call to Adventure -->
+            <div class="level-screen" id="level-1">
+                <div class="pixel-art-character">🗡️</div>
+                <div class="dialogue-box">
+                    <div class="dialogue-text">
+                        Greetings, brave warrior OUFIAN!<br><br>
+                        A mysterious force has scattered the pieces of an ancient treasure across distant lands. Your sister, the legendary guide, has sent you on this epic quest.<br><br>
+                        Your adventure begins NOW!
+                    </div>
+                </div>
+                <button class="submit-btn" onclick="nextLevel(2)">ACCEPT QUEST</button>
+            </div>
+
+            <!-- Level 2: JoJo Reference -->
+            <div class="level-screen" id="level-2">
+                <div class="jojo-stand">⭐💫✨</div>
+                <div class="dialogue-box">
+                    <div class="dialogue-text">
+                        As you journey forward, you discover you possess a special power...<br><br>
+                        A STAND!<br><br>
+                        What will you name your Stand?
+                    </div>
+                </div>
+                <div class="choices">
+                    <button class="choice-btn" onclick="standChoice('Star Platinum')">⭐ Star Platinum</button>
+                    <button class="choice-btn" onclick="standChoice('Gold Experience')">💛 Gold Experience</button>
+                    <button class="choice-btn" onclick="standChoice('King Crimson')">👑 King Crimson</button>
+                    <button class="choice-btn" onclick="standChoice('Za Warudo')">🌍 Za Warudo</button>
+                </div>
+            </div>
+
+            <!-- Level 3: Italy Journey -->
+            <div class="level-screen" id="level-3">
+                <div class="pixel-art-character">🍕🗼</div>
+                <div class="dialogue-box">
+                    <div class="dialogue-text">
+                        Your Stand guides you to the beautiful land of ITALY!<br><br>
+                        The streets of Genova hold ancient secrets. You remember your recent journey here...<br><br>
+                        What did you discover in Italy?
+                    </div>
+                </div>
+                <div class="choices">
+                    <button class="choice-btn" onclick="nextLevel(4)">🍝 Amazing food everywhere</button>
+                    <button class="choice-btn" onclick="nextLevel(4)">🏛️ Ancient history & architecture</button>
+                    <button class="choice-btn" onclick="nextLevel(4)">🎨 Beautiful art & culture</button>
+                    <button class="choice-btn" onclick="nextLevel(4)">✨ All of the above!</button>
+                </div>
+            </div>
+
+            <!-- Level 4: Memory Mini-Game -->
+            <div class="level-screen" id="level-4">
+                <div class="dialogue-box">
+                    <div class="dialogue-text">
+                        MINI-GAME: Find the 3 hidden treasures!<br>
+                        Click the golden coins! 💰
+                    </div>
+                </div>
+                <div class="mini-game">
+                    <div class="coin-counter">Coins Found: <span id="coin-count">0</span>/3</div>
+                    <div class="game-grid" id="memory-grid">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Level 4.5: Photo Memories -->
+            <div class="level-screen" id="level-45">
+                <div class="pixel-art-character">📸💝</div>
+                <div class="dialogue-box">
+                    <div class="dialogue-text large">
+                        OUR PRECIOUS MEMORIES
+                    </div>
+                </div>
+                <div class="dialogue-text" style="margin: 1rem 0; font-size: 1.3rem;">
+                    Even though you're far away, these moments keep us close! ❤️<br>
+                    Click on each photo to see it bigger!
+                </div>
+              <div class="photo-gallery">
+    <div class="photo-item" onclick="openPhoto(0)">
+        <img src="img/1.jpeg" alt="Photo 1">
+    </div>
+    <div class="photo-item" onclick="openPhoto(1)">
+        <img src="img/2.jpeg" alt="Photo 2">
+    </div>
+    <div class="photo-item" onclick="openPhoto(2)">
+        <img src="img/3.jpeg" alt="Photo 3">
+    </div>
+    <div class="photo-item" onclick="openPhoto(3)">
+        <img src="img/4.jpeg" alt="Photo 4">
+    </div>
+    <div class="photo-item" onclick="openPhoto(4)">
+        <img src="img/5.jpeg" alt="Photo 5">
+    </div>
+    <div class="photo-item" onclick="openPhoto(5)">
+        <img src="img/6.jpeg" alt="Photo 6">
+    </div>
+    <div class="photo-item" onclick="openPhoto(6)">
+        <img src="img/7.jpeg" alt="Photo 7">
+    </div>
+    <div class="photo-item" onclick="openPhoto(7)">
+        <img src="img/8.jpeg" alt="Photo 8">
+   
+</div>
+                </div>
+                <button class="submit-btn" onclick="nextLevel(5)">CONTINUE QUEST</button>
+            </div>
+
+            <!-- Level 5: Count of Monte Cristo Reference -->
+            <div class="level-screen" id="level-5">
+                <div class="pixel-art-character">👨‍✈️⚔️</div>
+                <div class="dialogue-box">
+                    <div class="dialogue-text">
+                        You've collected the treasures, but your journey isn't over...<br><br>
+                        Like Edmond Dantès in "The Count of Monte Cristo", you've been on an incredible adventure...<br><br>
+                        Imprisoned by time, freed by destiny, and now seeking the ultimate treasure!
+                    </div>
+                </div>
+<!-- Dans Level 5, change: -->
+<button class="submit-btn" onclick="nextLevel(55)">CONTINUE QUEST</button>
+<!-- Au lieu de nextLevel(6) -->
+            </div>
+<!-- Level 5.5: The Riddle - Unlock the Chest -->
+<div class="level-screen" id="level-55">
+    <div class="pixel-art-character">🔐💝</div>
+    <div class="dialogue-box">
+        <div class="dialogue-text large">
+            THE LEGENDARY CHEST
+        </div>
+    </div>
+    <div class="dialogue-text" style="margin: 1.5rem 0; font-size: 1.3rem;">
+        A mysterious chest appears before you! 📦<br><br>
+        To unlock it and reveal the treasure inside,<br>
+        you must answer this riddle:<br><br>
+        <strong style="color: var(--pixel-yellow); font-size: 1.5rem;">"Who do you think created this for you?"</strong>
+    </div>
+    <input type="text" class="input-box" id="riddle-answer" placeholder="Type your answer...">
+    <button class="submit-btn" onclick="checkRiddle()">UNLOCK CHEST</button>
+</div>
+
+
+            <!-- Level 6: Sister's Message -->
+            <div class="level-screen" id="level-6">
+                <div class="pixel-art-character">👩💝</div>
+                <div class="dialogue-box">
+                    <div class="dialogue-text">
+                        A message appears from your legendary sister...<br><br>
+                        "Dear Oufian, you've traveled far and grown so much. From your gaming adventures to exploring Italy, from JoJo marathons to epic movie nights...<br><br>
+                        You're not just my brother, you're LAEZIIIIZ HENOUNI ❤️"
+                    </div>
+                </div>
+                <button class="submit-btn" onclick="nextLevel(7)">READ MORE</button>
+            </div>
+
+            <!-- Level 7: The Final Challenge -->
+            <div class="level-screen" id="level-7">
+                <div class="dialogue-box">
+                    <div class="dialogue-text">
+                        FINAL BOSS APPROACHING!<br><br>
+                        To unlock the ultimate treasure, you must answer this question:<br><br>
+                        What is the most valuable thing you've gained this year?
+                    </div>
+                </div>
+                <input type="text" class="input-box" id="final-answer" placeholder="Type your answer...">
+                <button class="submit-btn" onclick="finalAnswer()">SUBMIT ANSWER</button>
+            </div>
+
+            <!-- Level 8: HAPPY BIRTHDAY! -->
+            <div class="level-screen final-screen" id="level-8">
+                <div class="pixel-art-character">🎂🎉🎁</div>
+                <div class="dialogue-box">
+                    <div class="birthday-message">
+                        QUEST<br>COMPLETE!
+                    </div>
+                </div>
+                <div class="dialogue-box" style="margin-top: 2rem;">
+                    <div class="dialogue-text large">
+                        HAPPY BIRTHDAY<br>OUFIAN! 🎊
+                    </div>
+                </div>
+                <div class="dialogue-text" style="margin-top: 2rem; font-size: 1.5rem;">
+                    From your favorite sister! 💝<br><br>
+                    May this year bring you:<br>
+                    🎮 Epic gaming victories<br>
+                    🌍 More amazing adventures<br>
+                    ⭐ Your Stand's awakening<br>
+                    🍕 Delicious Italian food<br>
+                    💪 Strength & happiness!<br><br>
+                    LEVEL UP: AGE +1! 🎂
+                </div>
+                <div class="progress-bar" style="margin-top: 2rem;">
+                    <div class="progress-fill" style="width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Modal -->
+    <div class="photo-modal" id="photoModal">
+        <div class="photo-modal-content">
+            <button class="close-modal" onclick="closePhoto()">✕ CLOSE</button>
+            <img id="modalImage" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect fill='%2316213e' width='400' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2300fff5' font-size='40' font-family='monospace'%3E📸 Add Your Photo!%3C/text%3E%3C/svg%3E" alt="Photo">
+        </div>
+    </div>
+
+    <script>
+        let currentLevel = 0;
+        let coinsFound = 0;
+        let standName = '';
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // AUTO-PLAY BACKGROUND MUSIC
+        window.addEventListener('load', () => {
+                playBackgroundMusic();
+            
+        });
+
+        function playBackgroundMusic() {
+            const melody = [
+                { note: 261.63, duration: 0.5 }, // C4
+                { note: 329.63, duration: 0.5 }, // E4
+                { note: 392.00, duration: 0.5 }, // G4
+                { note: 523.25, duration: 1 },   // C5
+                { note: 392.00, duration: 0.5 }, // G4
+                { note: 329.63, duration: 0.5 }, // E4
+                { note: 293.66, duration: 1 },   // D4
+                { note: 261.63, duration: 1 },   // C4
+            ];
+
+            let currentTime = audioContext.currentTime;
+            
+            function playMelody() {
+                melody.forEach(({ note, duration }) => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = note;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.08, currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + duration);
+                    
+                    oscillator.start(currentTime);
+                    oscillator.stop(currentTime + duration);
+                    
+                    currentTime += duration;
+                });
+                
+                setTimeout(playMelody, melody.reduce((sum, m) => sum + m.duration, 0) * 1000 + 500);
+            }
+            
+            playMelody();
+        }
+
+        function openPhoto(photoId) {
+    const modal = document.getElementById('photoModal');
+    const modalImage = document.getElementById('modalImage');
+    
+    // Set the image source based on photoId (0-7 maps to 1.jpeg-8.jpeg)
+    modalImage.src = 'img/' + (photoId + 1) + '.jpeg';
+    
+    modal.classList.add('active');
+}
+
+        function closePhoto() {
+            document.getElementById('photoModal').classList.remove('active');
+        }
+
+        // Close modal on clicking outside
+        document.getElementById('photoModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePhoto();
+            }
+        });
+
+        function nextLevel(level) {
+    document.getElementById(`level-${currentLevel}`).classList.remove('active');
+    currentLevel = level;
+    document.getElementById(`level-${level}`).classList.add('active');
+
+    // Scroll to top of screen content
+    document.querySelector('.screen-content').scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+
+    // Special handling for memory game
+    if (level === 4) {
+        initMemoryGame();
+    }
+
+    // Trigger confetti on final level
+    if (level === 8) {
+        createConfetti();
+        playVictorySound();
+    }
+}
+
+        function standChoice(name) {
+            standName = name;
+            nextLevel(3);
+        }
+
+        function initMemoryGame() {
+            const grid = document.getElementById('memory-grid');
+            grid.innerHTML = '';
+            coinsFound = 0;
+            document.getElementById('coin-count').textContent = '0';
+
+            const items = ['💰', '💰', '💰', '📦', '📦', '📦', '🎁', '🎁', '🎁'];
+            items.sort(() => Math.random() - 0.5);
+
+            items.forEach((item, index) => {
+                const gridItem = document.createElement('div');
+                gridItem.className = 'grid-item';
+                gridItem.textContent = '❓';
+                gridItem.dataset.item = item;
+                gridItem.onclick = () => revealItem(gridItem, index);
+                grid.appendChild(gridItem);
+            });
+        }
+
+        function revealItem(element, index) {
+            if (element.classList.contains('found')) return;
+
+            const item = element.dataset.item;
+            element.textContent = item;
+
+            if (item === '💰') {
+                element.classList.add('found');
+                coinsFound++;
+                document.getElementById('coin-count').textContent = coinsFound;
+
+                if (coinsFound === 3) {
+                    setTimeout(() => {
+                        nextLevel(45); 
+                    }, 1000);
+                }
+            } else {
+                setTimeout(() => {
+                    if (!element.classList.contains('found')) {
+                        element.textContent = '❓';
+                    }
+                }, 500);
+            }
+        }
+
+        function finalAnswer() {
+            const answer = document.getElementById('final-answer').value;
+            if (answer.trim()) {
+                nextLevel(8);
+            } else {
+                alert('Please type your answer, brave warrior!');
+            }
+        }
+
+        function createConfetti() {
+            const colors = ['#ffd93d', '#ff6ec7', '#00fff5', '#b388ff', '#6bcf7f'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 2 + 's';
+                    confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                    document.querySelector('.screen-content').appendChild(confetti);
+
+                    setTimeout(() => confetti.remove(), 5000);
+                }, i * 100);
+            }
+        }
+
+        function checkRiddle() {
+    const answer = document.getElementById('riddle-answer').value.trim().toLowerCase();
+    
+    // Check for Sabrina or Doubthi
+    if (answer === 'sabrina' || answer === 'doubthi') {
+        alert('Zid zeyer rohk tjibha');
+        document.getElementById('riddle-answer').value = '';
+        return;
+    }
+    
+    // Check for correct answer
+    if (answer === 'khti laeziza') {
+        alert('🎉 CORRECT! The chest opens! 💝');
+        nextLevel(6);
+    } else {
+        alert('Zeyer rohk 9olna');
+        document.getElementById('riddle-answer').value = '';
+    }
+};
+
+        function playVictorySound() {
+            // Happy Birthday melody!
+            const happyBirthday = [
+                { note: 264, duration: 0.3 },  // C - Hap-
+                { note: 264, duration: 0.3 },  // C - py
+                { note: 297, duration: 0.6 },  // D - Birth-
+                { note: 264, duration: 0.6 },  // C - day
+                { note: 352, duration: 0.6 },  // F - to
+                { note: 330, duration: 1.2 },  // E - you
+                
+                { note: 264, duration: 0.3 },  // C - Hap-
+                { note: 264, duration: 0.3 },  // C - py
+                { note: 297, duration: 0.6 },  // D - Birth-
+                { note: 264, duration: 0.6 },  // C - day
+                { note: 396, duration: 0.6 },  // G - to
+                { note: 352, duration: 1.2 },  // F - you
+                
+                { note: 264, duration: 0.3 },  // C - Hap-
+                { note: 264, duration: 0.3 },  // C - py
+                { note: 528, duration: 0.6 },  // C5 - Birth-
+                { note: 440, duration: 0.6 },  // A - day
+                { note: 352, duration: 0.6 },  // F - dear
+                { note: 330, duration: 0.6 },  // E - Ou-
+                { note: 297, duration: 0.6 },  // D - fian
+                
+                { note: 466, duration: 0.3 },  // Bb - Hap-
+                { note: 466, duration: 0.3 },  // Bb - py
+                { note: 440, duration: 0.6 },  // A - Birth-
+                { note: 352, duration: 0.6 },  // F - day
+                { note: 396, duration: 0.6 },  // G - to
+                { note: 352, duration: 1.2 },  // F - you!
+            ];
+            
+            let currentTime = audioContext.currentTime;
+            happyBirthday.forEach(({ note, duration }) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = note;
+                oscillator.type = 'triangle';
+                
+                gainNode.gain.setValueAtTime(0.3, currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + duration);
+                
+                oscillator.start(currentTime);
+                oscillator.stop(currentTime + duration);
+                
+                currentTime += duration;
+            });
+        }
+
+        //Konami code
+        let konamiCode = [];
+        const konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+
+        document.addEventListener('keydown', (e) => {
+            konamiCode.push(e.key);
+            if (konamiCode.length > 10) konamiCode.shift();
+            
+            if (JSON.stringify(konamiCode) === JSON.stringify(konamiSequence)) {
+                alert('🎮 CHEAT CODE ACTIVATED! Your sister is the best! 💝');
+                konamiCode = [];
+            }
+        });
+    </script>
+</body>
+</html>
